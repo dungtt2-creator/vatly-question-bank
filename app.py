@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import io
+import re
 import zipfile
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -45,6 +46,47 @@ def esc(s):
 def fmt_short(s, n=110):
     s = (s or "").replace("\n", " ")
     return s if len(s) <= n else s[: n - 3] + "…"
+
+
+def _parse_formulas(q):
+    """Lấy map công thức {n: path} từ câu hỏi (DB lưu dạng JSON)."""
+    fm = q.get("formulas") or {}
+    if isinstance(fm, str):
+        try:
+            fm = json.loads(fm)
+        except Exception:
+            fm = {}
+    if not isinstance(fm, dict):
+        return {}
+    return {str(k): v for k, v in fm.items()}
+
+
+def show_assets(q, prefix="", max_w=220):
+    """
+    Hiển thị ảnh công thức + ảnh minh họa của câu hỏi (thay [[FORMULA:n]]
+    và [[IMG:n]] trong text). Gọi sau khi vẽ text_area để xem công thức.
+    """
+    fm = _parse_formulas(q)
+    # placeholder trong text + options
+    text_all = (q.get("question_text") or "") + " " + " ".join(map(str, q.get("options") or []))
+    keys = [int(m.group(1)) for m in re.finditer(r"\[\[FORMULA:(\d+)\]\]", text_all)]
+    paths = []
+    for k in keys:
+        p = fm.get(str(k))
+        if p and os.path.exists(str(p)):
+            paths.append(p)
+    # ảnh minh họa
+    imgs = q.get("image_path") or []
+    if isinstance(imgs, str):
+        imgs = [imgs]
+    for p in [*paths, *imgs]:
+        if p and os.path.exists(str(p)):
+            st.image(str(p), width=max_w)
+    return paths
+
+
+def qtype_label(t):
+    return {"MCQ 4 lựa chọn": "MCQ", "Đúng/Sai": "Đúng/Sai", "Trả lời ngắn": "TL ngắn"}.get(t, t)
 
 
 def selectbox_kv(label, options, key=None, format_fn=str, **kw):
@@ -334,6 +376,9 @@ elif page == "📥 Nạp đề":
                 with c1:
                     st.text_area(f"Nội dung câu {q['question_number']}", value=q["question_text"],
                                  key=f"qt_{i}", height=130)
+                    # Hiển thị công thức & ảnh minh họa nếu có
+                    if q.get("formulas") or q.get("image_path"):
+                        show_assets(q, prefix=f"preview_{i}")
                     if q["options"]:
                         new_opts = []
                         for j, o in enumerate(q["options"]):
@@ -378,6 +423,8 @@ elif page == "📥 Nạp đề":
                     "question_type": q["question_type"],
                     "cognitive_level": q["cognitive_level"],
                     "difficulty": q["difficulty"],
+                    "formulas": q.get("formulas", {}),
+                    "image_path": q.get("image_path", []),
                 })
             ok_c, flagged_c, errors = svc.import_exam_pipeline(st.session_state.last_exam_id, final)
             if errors:
@@ -409,6 +456,9 @@ elif page == "✅ Thẩm định":
                 c1, c2 = st.columns([3, 2])
                 with c1:
                     nt = st.text_area("Nội dung (sửa được)", value=q["question_text"], key=f"rv_t_{q['id']}", height=130)
+                    # Hiển thị công thức & ảnh minh họa (nếu có)
+                    if q.get("formulas") or q.get("image_path"):
+                        show_assets(q, prefix=f"rv_{q['id']}")
                     opts = q.get("options") or []
                     n_opts = []
                     for j, o in enumerate(opts):
@@ -630,6 +680,9 @@ elif page == "🗄️ Ngân hàng câu hỏi":
                 with st.popover("Xem chi tiết"):
                     st.markdown("**Nội dung:**")
                     st.write(q["question_text"])
+                    # hiển thị công thức/ảnh nếu có
+                    if q.get("formulas") or q.get("image_path"):
+                        show_assets(q, prefix=f"detail_{q['id']}")
                     for j, o in enumerate(q.get("options") or []):
                         st.write(f"{chr(65+j)}. {o}")
                     st.markdown(f"**Đáp án:** {q.get('answer') or '—'}")

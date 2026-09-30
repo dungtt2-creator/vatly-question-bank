@@ -4,3 +4,6 @@ python-docx
 openpyxl
 pandas
 rapidfuzz
+Pillow
+pypdfium2
+pywin32; platform_system == "Windows"

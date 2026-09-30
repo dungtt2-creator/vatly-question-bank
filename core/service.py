@@ -4,6 +4,7 @@ Service layer – các thao tác nghiệp vụ trên DB (dùng cho UI Streamlit 
 """
 import json
 import os
+import re
 import shutil
 from datetime import datetime
 
@@ -11,6 +12,21 @@ from . import db as dbm
 from .db import now, get_conn, rows_to_dicts, qrow_to_dict
 from . import duplicate as dup
 from . import classifier as clf
+
+# Placeholder công thức/ảnh trong text: [[FORMULA:n]] / [[IMG:n]]
+FORMULA_PH = re.compile(r"\[\[FORMULA:(\d+)\]\]")
+IMG_PH = re.compile(r"\[\[IMG:(\d+)\]\]")
+
+
+def render_text_with_assets(text, formulas_map, image_paths):
+    """
+    Trả về đường dẫn ảnh công thức theo thứ tự xuất hiện trong text
+    (để màn hình Thẩm định/Nạp đề hiển thị sau mỗi đoạn).
+    formulas_map: dict {n: path} (có thể lưu trong câu hỏi dạng JSON).
+    image_paths: list (ảnh minh họa).
+    """
+    keys = [int(m.group(1)) for m in FORMULA_PH.finditer(text or "")]
+    return [formulas_map.get(k) for k in keys if formulas_map.get(k)]
 
 # ------------------------------------------------------------------ NGUỒN
 def add_source(name, group_name, year=None, description="", file_path="", file_name="", status="Đang sử dụng"):
@@ -189,8 +205,9 @@ def add_question(q, check_duplicates=True):
             q.get("question_number"),
             q.get("question_type", ""), q.get("question_text", ""),
             json.dumps(q.get("options", []), ensure_ascii=False),
-            q.get("answer", ""), q.get("solution", ""), q.get("image_path", ""),
-            json.dumps(q.get("formulas", []), ensure_ascii=False),
+            q.get("answer", ""), q.get("solution", ""),
+            json.dumps(q.get("image_path", []) if isinstance(q.get("image_path"), (list, dict)) else q.get("image_path", ""), ensure_ascii=False),
+            json.dumps(q.get("formulas", {}), ensure_ascii=False),
             json.dumps(q.get("table_data", ""), ensure_ascii=False),
             q.get("strand_id"), q.get("strand_name", ""),
             q.get("content_id"), q.get("content_name", ""),
@@ -216,7 +233,7 @@ def update_question(qid, **fields):
     allowed = {
         "source_id", "source_name", "year", "organization", "exam_name", "exam_code", "exam_id",
         "question_number", "question_type", "question_text", "options", "answer", "solution",
-        "image_path", "strand_id", "strand_name", "content_id", "content_name", "unit_id", "unit_name",
+        "image_path", "formulas", "strand_id", "strand_name", "content_id", "content_name", "unit_id", "unit_name",
         "outcome_id", "outcome_name", "cognitive_level", "difficulty", "duplicate_status",
         "similarity_score", "related_question_ids", "classification_confidence", "classification_basis",
         "review_status", "reviewer", "review_note",
@@ -225,7 +242,9 @@ def update_question(qid, **fields):
     for k, v in fields.items():
         if k not in allowed:
             continue
-        if k in ("options", "related_question_ids", "formulas") and not isinstance(v, str):
+        if k == "image_path" and not isinstance(v, str):
+            v = json.dumps(v, ensure_ascii=False)
+        elif k in ("options", "related_question_ids", "formulas") and not isinstance(v, str):
             v = json.dumps(v, ensure_ascii=False)
         sets[k] = v
     if "updated_at" not in sets:

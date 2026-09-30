@@ -31,20 +31,21 @@ def _add_question_para(doc, q, index=None, with_answer=False, with_solution=Fals
         r = p.add_run(f"Câu {index}. "); r.bold = True
         # Loại bỏ số câu đã lặp trong text nếu có
         t = re.sub(r"^\s*Câu\s+\d+\s*[\.\:\)]\s*", "", text, flags=re.IGNORECASE)
-        p.add_run(t)
+        _add_text_with_formulas(doc, p, t, q)
     else:
-        doc.add_paragraph(text)
+        p = doc.add_paragraph()
+        _add_text_with_formulas(doc, p, text, q)
 
-    # Hình ảnh
-    img = q.get("image_path") or ""
-    if img:
-        if isinstance(img, str) and "," in img and not img.lower().endswith((".png", ".jpg", ".jpeg", ".gif")):
-            for im in img.split(","):
-                im = im.strip()
-                if im and os.path.exists(im):
-                    doc.add_picture(im, width=Cm(10))
-        elif img and os.path.exists(str(img)):
-            doc.add_picture(str(img), width=Cm(10))
+    # Hình ảnh minh họa (image_path)
+    imgs = q.get("image_path") or []
+    if isinstance(imgs, str):
+        imgs = [imgs]
+    for im in imgs:
+        if im and os.path.exists(str(im)):
+            try:
+                doc.add_picture(str(im), width=Cm(10))
+            except Exception:
+                pass
 
     # Phương án MCQ
     opts = q.get("options") or []
@@ -54,7 +55,11 @@ def _add_question_para(doc, q, index=None, with_answer=False, with_solution=Fals
     for i, o in enumerate(opts):
         o = re.sub(r"^\s*[A-Da-d]\s*[\.\:\)]\s*", "", str(o)).strip()
         if i < 4:
-            doc.add_paragraph(f"{letters[i]}. {o}", style="List Bullet")
+            p = doc.add_paragraph(f"{letters[i]}. ", style="List Bullet")
+            # Xóa prefix vừa thêm ở run đầu (style List Bullet) rồi add text:
+            # cách đơn giản: thêm text vào run sau
+            p.runs[0].text = f"{letters[i]}. "
+            _add_text_with_formulas(doc, p, "", q, append_run=True, opt_text=o)
 
     # Bảng Đúng/Sai nếu có a) b) c) d)
     qtype = q.get("question_type", "")
@@ -93,6 +98,63 @@ def _add_question_para(doc, q, index=None, with_answer=False, with_solution=Fals
             p = doc.add_paragraph("[Taxonomy: " + "; ".join(meta) + "]")
             for r in p.runs:
                 r.font.size = Pt(9); r.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+
+def _add_text_with_formulas(doc, paragraph, text, q, append_run=False, opt_text=None):
+    """
+    Thêm text vào paragraph; nếu trong text có [[FORMULA:n]] thì chèn ảnh công
+    thức (render từ Word) tại đúng vị trí. Nếu append_run=True, thêm run mới
+    (dùng cho option); opt_text là text option đã strip label.
+    """
+    # map công thức từ q
+    fm = q.get("formulas") or {}
+    if isinstance(fm, str):
+        try:
+            fm = json.loads(fm)
+        except Exception:
+            fm = {}
+    if not isinstance(fm, dict):
+        fm = {}
+
+    parts = re.split(r"(\[\[FORMULA:\d+\]\])", text)
+    for part in parts:
+        if not part:
+            continue
+        mformula = re.match(r"\[\[FORMULA:(\d+)\]\]", part)
+        if mformula:
+            n = mformula.group(1)
+            p = fm.get(str(n))
+            if p and os.path.exists(str(p)):
+                try:
+                    run = paragraph.add_run()
+                    run.add_picture(str(p), width=Cm(4))
+                except Exception:
+                    paragraph.add_run("[công thức]")
+            else:
+                paragraph.add_run("[công thức]")
+        else:
+            paragraph.add_run(part)
+
+    # nếu option text rời (append_run mode) thì thêm sau
+    if append_run and opt_text:
+        parts2 = re.split(r"(\[\[FORMULA:\d+\]\])", opt_text)
+        for part in parts2:
+            if not part:
+                continue
+            mformula = re.match(r"\[\[FORMULA:(\d+)\]\]", part)
+            if mformula:
+                n = mformula.group(1)
+                p = fm.get(str(n))
+                if p and os.path.exists(str(p)):
+                    try:
+                        run = paragraph.add_run()
+                        run.add_picture(str(p), width=Cm(4))
+                    except Exception:
+                        paragraph.add_run("[công thức]")
+                else:
+                    paragraph.add_run("[công thức]")
+            else:
+                paragraph.add_run(part)
 
 
 def export_bank(questions, out_path, with_answer=False, with_solution=False, with_taxonomy=False):
