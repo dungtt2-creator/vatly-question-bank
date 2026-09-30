@@ -8,6 +8,15 @@ duyệt → lưu ngân hàng → tìm kiếm/lọc → xuất Word.
 
 ## 1. Chạy nhanh (local)
 
+**Repo GitHub (public): https://github.com/dungtt2-creator/vatly-question-bank**
+
+**Deploy 1-click lên Streamlit Community Cloud (miễn phí):**
+https://streamlit.io/cloud → Sign in (GitHub) → New app →
+`dungtt2-creator/vatly-question-bank` → Main → `app.py` → Deploy.
+*Lưu ý: đĩa ephemeral — dữ liệu `data/bank.db` không bền giữa các lần khởi
+động; nên nạp lại đề (màn hình Nạp đề) sau mỗi deploy hoặc dùng hành động
+"Reset app". Chi tiết trong README mục 8.*
+
 ```bash
 # (đã có sẵn môi trường nếu tải bản đóng gói)
 pip install -r requirements.txt
@@ -164,9 +173,21 @@ thay `core/db.py` (giữ nguyên interface) — Phase 2.
 python tests/test_suite.py        # 21 assertions – Test 1..8 theo đặc tả §22
 python tests/test_e2e.py          # E2E với Đề chính thức 2025 (28 câu)
 python tests/test_real_exams.py   # Parse đề 2025/2026 + verify seed taxonomy
+python tests/test_ui_smoke.py     # Render 8 trang UI qua AppTest
 ```
 
-Kết quả hiện tại: **21/21 PASS**, E2E PASS.
+Kết quả hiện tại: **21/21 PASS**, E2E PASS, UI smoke 8/8 PASS.
+
+## 10. Dữ liệu demo (101 câu từ 3 đề thật)
+
+Đã nạp sẵn vào `data/bank.db` bằng `scripts/populate_demo.py`:
+- Đề tham khảo TN THPT 2025 – Vật lí (27 câu)
+- Đề chính thức TN THPT 2025 – Vật lí (28 câu)
+- Đề chính thức TN THPT 2026 – Vật lí (46 câu)
+
+Mỗi câu đã có mạch nội dung (heuristic), 20 câu được tự đánh dấu trùng/gần
+trùng với câu khác — mở màn hình **Thẩm định** để thấy luồng duyệt có dữ liệu.
+Nạp lại từ đầu: `python scripts/populate_demo.py`.
 
 ---
 
