@@ -1,0 +1,83 @@
+# ================= Hướng dẫn sử dụng =================
+
+# NGÂN HÀNG CÂU HỎI VẬT LÍ – TN THPT (MVP)
+# ============ HƯỚNG DẪN SỬ DỤNG (dành cho Biên tập viên / GV Vật lí) ============
+
+# ------------------------------------------------------------
+# 1. KHỞI ĐỘNG
+# ------------------------------------------------------------
+python -m streamlit run app.py          # mở http://localhost:8607
+
+# ------------------------------------------------------------
+# 2. LUỒNG SỬ DỤNG CƠ BẢN (LÀM THEO THỨ TỰ)
+# ------------------------------------------------------------
+#
+# Bước 1 – Nạp tài liệu chuẩn
+#   Màn hình "Nguồn chuẩn" → "Thêm nguồn chuẩn".
+#   Khuyến nghị thêm: CTGDPT 2018 môn Vật lí (Thông tư 32/2018/TT-BGDĐT),
+#   Đề tham khảo 2025, Đề chính thức 2025, Đề chính thức 2026.
+#   File nguồn có thể đính kèm (PDF/DOCX/TXT) — lưu làm căn cứ đối chiếu.
+
+# Bước 2 – Kiểm tra cây taxonomy
+#   Màn hình "Taxonomy" hiển thị cây 4 cấp đã seed sẵn (306 node):
+#   Mạch nội dung → Nội dung → Đơn vị kiến thức → Yêu cầu cần đạt.
+#   Dùng ô tìm kiếm; thêm node mới (ví dụ mạch chưa có) qua form bên phải.
+#   KHÔNG cần xây lại từ đầu — chỉ bổ sung nếu tổ thấy thiếu.
+
+# Bước 3 – Nạp đề thi
+#   Màn hình "Nạp đề" → điền tên đề, đơn vị, năm, mã đề → upload file
+#   (PDF/DOCX/TXT/XLSX) → "Tải lên và tách câu".
+#   Hệ thống tách từng câu (nhận biết MCQ / Đúng-Sai / Trả lời ngắn),
+#   gợi ý phân loại heuristic. Bạn có thể SỬA từng câu (nội dung, phương án,
+#   đáp án, dạng câu, mức độ, độ khó) trước khi nhấn "Lưu toàn bộ".
+#   Lúc lưu, hệ thống TỰ ĐỘNG chạy kiểm tra trùng với toàn bộ ngân hàng.
+
+# Bước 4 – Thẩm định
+#   Màn hình "Thẩm định" → chọn trạng thái từ dropdown.
+#   Với mỗi câu:
+#     • Sửa nội dung/đáp án/lời giải (ô text).
+#     • Gắn taxonomy: chọn Mạch → Nội dung → ĐVKT → YCCĐ (cây kéo xuống).
+#     • Chọn dạng câu, mức độ, độ khó.
+#     • Nếu câu có cảnh báo trùng: mở "Xem so sánh song song" để đối chiếu
+#       với câu đã có (phần giống được bôi vàng), rồi bấm quyết định.
+#     • Bấm một trong: ✅ Đạt → ngân hàng | 🔁 Chờ duyệt | 🛑 Trùng 100%
+#       | ⚠️ Gần trùng/Cần thẩm định | ❌ Lỗi câu hỏi.
+#   Câu Trùng 100% sẽ bị CHẶN không cho duyệt vào ngân hàng.
+
+# Bước 5 – Tìm kiếm / lọc
+#   Màn hình "Ngân hàng câu hỏi" → dùng bộ lọc 10 tiêu chí + ô tìm từ khóa.
+#   Tick checkbox để chọn câu; mở "Xem chi tiết" để xem taxonomy/đáp án/căn cứ.
+
+# Bước 6 – Tạo đề Word
+#   Màn hình "Tạo đề" → chọn chế độ:
+#     • Đề thi (kèm/không đáp án, lời giải, taxonomy, xáo trộn)
+#     • Ngân hàng câu hỏi (danh sách có taxonomy)
+#     • Chỉ đáp án (bảng câu ↔ đáp án, kèm lời giải nếu muốn)
+#     • Câu hỏi + lời giải
+#   → "Xuất Word" → tải file .docx. Hình ảnh được giữ, công thức Unicode
+#     giữ nguyên, bảng Đúng-Sai dạng 3 cột (Ý/Nội dung/Đ-S), ô trả lời
+#     ngắn có dòng chấm.
+
+# ------------------------------------------------------------
+# 3. QUY TẮC NGHIỆP VỤ QUAN TRỌNG (hệ thống tự tuân thủ)
+# ------------------------------------------------------------
+# - Không tự bịa taxonomy/YCCĐ: câu chưa gắn YCCĐ hiển thị "CẦN THẨM ĐỊNH".
+# - Không tự loại câu chỉ vì cùng kiến thức: chỉ Trùng 100% mới bị chặn.
+# - Mức độ tư duy ≠ độ khó: phân biệt rõ 2 trường (mức độ / độ khó).
+# - Mọi phân loại có căn cứ + độ tin cậy hiển thị rõ.
+
+# ------------------------------------------------------------
+# 4. SAO LƯU / CHUYỂN DỮ LIỆU
+# ------------------------------------------------------------
+# Toàn bộ dữ liệu nằm trong data/bank.db — sao chép file này là backup.
+# Xuất JSON từng phần: Ngân hàng → chọn câu → "Xuất JSON".
+
+# ------------------------------------------------------------
+# 5. XỬ LÝ SỰ CỐ THƯỜNG GẶP
+# ------------------------------------------------------------
+# - PDF không tách được câu: file scan (hình ảnh) chưa có OCR — dùng bản
+#   DOCX/PDF có text layer của cùng đề, hoặc OCR ngoài rồi nạp TXT.
+# - Một số câu bị gộp/lệch số: do format file; sửa lại ở màn hình
+#   "Nạp đề" (ước tính xem trước khi lưu) hoặc sau khi lưu tại Thẩm định.
+# - Công thức hiển thị dạng văn bản: MVP giữ nguyên nội dung công thức
+#   (Unicode); chuẩn hóa MathML tự động thuộc Phase 2.

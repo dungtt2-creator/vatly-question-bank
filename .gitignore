@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Dữ liệu local (giữ nguyên trên máy — không đẩy lên Git)
+data/bank.db
+data/uploads/*
+data/exports/*
+!data/exports/.gitkeep
+!data/uploads/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store
