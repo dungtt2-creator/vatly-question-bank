@@ -150,7 +150,7 @@ def rows_to_dicts(rows):
 
 def qrow_to_dict(r):
     d = dict(r)
-    for k in ("options", "related_question_ids", "formulas"):
+    for k in ("options", "related_question_ids", "formulas", "image_path"):
         if k in d and isinstance(d.get(k), str) and d[k]:
             try:
                 d[k] = json.loads(d[k])
